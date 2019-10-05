@@ -6,6 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNodeSetNext(t *testing.T) {
+	n := newNode4()
+
+	for i := 255; i >= 0; i-- {
+		n.setNext(byte(i), newNode4())
+	}
+
+	for i := 0; i < 256; i++ {
+		assert.NotNil(t, n.next(byte(i)))
+	}
+}
+
 func TestNode4Next(t *testing.T) {
 	n := newNode4()
 
@@ -106,7 +118,6 @@ func TestNode16SetNext(t *testing.T) {
 	}
 
 	assert.Equal(t, uint8(16), n.children)
-
 }
 
 func TestNode48Next(t *testing.T) {

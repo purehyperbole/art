@@ -200,7 +200,7 @@ func (n *node) upgrade16() *node {
 	newNode := newNode48()
 
 	for i := uint8(0); i < n.children; i++ {
-		newNode.keys[n.keys[i]] = byte(i)
+		newNode.keys[n.keys[i]] = byte(i + 1)
 		newNode.edges[i] = n.edges[i]
 	}
 
@@ -210,8 +210,8 @@ func (n *node) upgrade16() *node {
 func (n *node) upgrade48() *node {
 	newNode := newNode256()
 
-	for i := 0; i < 48; i++ {
-		if n.keys[i] != 0 {
+	for i := 0; i < 256; i++ {
+		if n.keys[i] > 0 {
 			newNode.edges[i] = n.edges[n.keys[i]-1]
 		}
 	}
