@@ -27,6 +27,7 @@ func (t *ART) Insert(key []byte, value interface{}) {
 
 }
 
+// Lookup a value from the tree
 func (t *ART) Lookup(key []byte) interface{} {
 	_, current, pos, _ := t.find(key)
 

@@ -79,6 +79,10 @@ func (n *node) next16(b byte) *node {
 		return n.keys[i] >= b
 	})
 
+	if i == 16 {
+		return nil
+	}
+
 	if n.keys[i] != b {
 		return nil
 	}
@@ -146,6 +150,11 @@ func (n *node) setNext16(b byte, next *node) {
 }
 
 func (n *node) setNext48(b byte, next *node) {
+	if n.keys[b] != 0 {
+		n.edges[n.keys[b]-1] = next
+		return
+	}
+
 	n.keys[b] = n.children + 1
 	n.edges[n.children] = next
 	n.children++
@@ -181,8 +190,7 @@ func (n *node) upgrade4() *node {
 	newNode := newNode16()
 
 	for i := 0; i < 4; i++ {
-		newNode.keys[i] = n.keys[i]
-		newNode.edges[i] = n.edges[i]
+		newNode.setNext(n.keys[i], n.edges[i])
 	}
 
 	return newNode
@@ -202,8 +210,10 @@ func (n *node) upgrade16() *node {
 func (n *node) upgrade48() *node {
 	newNode := newNode256()
 
-	for i := 0; i < 256; i++ {
-		newNode.edges[i] = n.edges[n.keys[i]]
+	for i := 0; i < 48; i++ {
+		if n.keys[i] != 0 {
+			newNode.edges[i] = n.edges[n.keys[i]-1]
+		}
 	}
 
 	return newNode

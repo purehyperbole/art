@@ -1,6 +1,8 @@
 package art
 
 import (
+	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,4 +78,21 @@ func TestARTInsertLookup(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestARTInsert(t *testing.T) {
+	data, err := ioutil.ReadFile("words.txt")
+	if err != nil {
+		t.SkipNow()
+	}
+
+	r := New()
+
+	for _, w := range bytes.Split(data, []byte("\n")) {
+		if len(w) < 1 {
+			continue
+		}
+		r.Insert(w, w)
+	}
+
 }

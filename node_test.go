@@ -96,6 +96,17 @@ func TestNode16SetNext(t *testing.T) {
 	assert.Nil(t, n.edges[3])
 
 	assert.Equal(t, uint8(3), n.children)
+
+	n = newNode4()
+
+	for x := 0; x < 8; x++ {
+		for i := 32; i > 16; i-- {
+			n.setNext(byte(i), newNode4())
+		}
+	}
+
+	assert.Equal(t, uint8(16), n.children)
+
 }
 
 func TestNode48Next(t *testing.T) {
