@@ -35,25 +35,23 @@ value := r.Lookup([]byte("myKey1234"))
 
 `Insert` allows a value to be stored for a given key.
 
-A successful insert will return true.
-
-If the operation conflicts with an insert from another thread, it will return false.
-
 ```go
-if r.Insert([]byte("key"), &Thing{12345}) {
-    fmt.Println("success!")
-} else {
-    fmt.Println("insert failed")
-}
+r.Insert([]byte("key"), &Thing{12345})
 ```
 
+`Iterate` allows for iterating keys in the tree
 
-# Features/Wishlist
+```go
+// iterate over all keys
+r.Iterate(nil, func(key []byte, value interface{}) {
+    ...
+})
 
-- [x] Lock free Insert using CAS (compare & swap)
-- [x] Lookup
-- [x] Basic key iterator
-- [ ] Delete
+// iterate over all subkeys of "art"
+r.Iterate([]byte("art"), func(key []byte, value interface{}) {
+    ...
+})
+```
 
 ## Why?
 
