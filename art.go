@@ -1,17 +1,22 @@
 package art
 
+import "sync"
+
 // ART an adaptive radix tree implementation
 type ART struct {
-	root *node
+	root  *node
+	locks [256]sync.RWMutex
 }
 
 // New creates a new radix tree
 func New() *ART {
-	return &ART{newNode256()}
+	return &ART{root: newNode256()}
 }
 
 // Insert value into the tree
 func (t *ART) Insert(key []byte, value interface{}) {
+	t.locks[key[0]].Lock()
+
 	parent, current, pos, dv := t.find(key)
 
 	switch {
@@ -25,11 +30,14 @@ func (t *ART) Insert(key []byte, value interface{}) {
 		t.splitTwoWay(key, value, parent, current, pos, dv)
 	}
 
+	t.locks[key[0]].Unlock()
 }
 
 // Lookup a value from the tree
 func (t *ART) Lookup(key []byte) interface{} {
+	t.locks[key[0]].RLock()
 	_, current, pos, _ := t.find(key)
+	t.locks[key[0]].RUnlock()
 
 	if current == nil || len(key) > pos {
 		return nil
@@ -72,6 +80,7 @@ func (t *ART) insertNode(key []byte, value interface{}, parent, current *node, p
 	newNode := newNode4()
 	newNode.prefix = key[pos+1:]
 	newNode.value = value
+
 	parent.setNext(key[pos], newNode)
 }
 
