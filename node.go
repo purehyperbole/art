@@ -1,7 +1,9 @@
 package art
 
 import (
+	"sync/atomic"
 	"sort"
+	"unsafe"
 )
 
 const (
@@ -11,232 +13,314 @@ const (
 	Node256
 )
 
-type node struct {
+type edges struct {
 	ntype    uint8
 	keys     []byte
 	edges    []*node
-	prefix   []byte
 	children uint8
+}
+
+type node struct {
+	prefix   []byte
+	edges  *unsafe.Pointer
 	value    interface{}
 }
 
-func newNode4() *node {
+func newNode(size int, prefix []byte, value interface{}) *node{
+	var e unsafe.Pointer
+
+	switch size {
+	case Node4:
+		e = unsafe.Pointer(newEdges4())
+	case Node16:
+		e = unsafe.Pointer(newEdges16())
+	case Node48:
+		e = unsafe.Pointer(newEdges48())
+	case Node256:
+		e = unsafe.Pointer(newEdges256())
+	}
+
 	return &node{
-		ntype: Node4,
-		keys:  make([]byte, 4, 4),
-		edges: make([]*node, 4, 4),
+		prefix: prefix,
+		value:  value,
+		edges:  &e,
 	}
 }
 
-func newNode16() *node {
-	return &node{
+func (n *node) next(b byte) *node {
+	return (*edges)(atomic.LoadPointer(n.edges)).next(b)
+}
+
+func newEdges4() *edges {
+	return &edges{
+			ntype: Node4,
+			keys:  make([]byte, 4, 4),
+			edges: make([]*node, 4, 4),
+	}
+}
+
+func newEdges16() *edges {
+	return &edges{
 		ntype: Node16,
 		keys:  make([]byte, 16),
 		edges: make([]*node, 16),
 	}
 }
 
-func newNode48() *node {
-	return &node{
+func newEdges48() *edges {
+	return &edges{
 		ntype: Node48,
 		keys:  make([]byte, 256),
 		edges: make([]*node, 48),
 	}
 }
 
-func newNode256() *node {
-	return &node{
+func newEdges256() *edges {
+	return &edges{
 		ntype: Node256,
 		edges: make([]*node, 256),
 	}
 }
 
-func (n *node) next(b byte) *node {
-	switch n.ntype {
-	case Node4:
-		return n.next4(b)
-	case Node16:
-		return n.next16(b)
-	case Node48:
-		return n.next48(b)
+func (n *node) swapNext(b byte, existing, next *node) bool {
+	e := (*edges)(atomic.LoadPointer(n.edges))
+
+	cn := e.next(b)
+
+	if cn != existing {
+		return false
 	}
 
-	return n.edges[b]
+	var ne *edges
+
+	if e.full() && e.next(b) == nil {
+		ne = e.upgrade(false)
+	} else {
+		ne = e.copy()
+	}
+
+	switch e.ntype {
+	case Node4:
+		ne.setNext4(b, next)
+	case Node16:
+		ne.setNext16(b, next)
+	case Node48:
+		ne.setNext48(b, next)
+	case Node256:
+		ne.setNext256(b, next)
+	}
+
+	return atomic.CompareAndSwapPointer(n.edges, unsafe.Pointer(e), unsafe.Pointer(ne))
 }
 
-func (n *node) next4(b byte) *node {
+func (n *node) setNext(b byte, next *node) {
+	e := (*edges)(atomic.LoadPointer(n.edges))
+
+	if e.full() && e.next(b) == nil {
+		e.upgrade(false)
+	}
+
+	switch e.ntype {
+	case Node4:
+		e.setNext4(b, next)
+	case Node16:
+		e.setNext16(b, next)
+	case Node48:
+		e.setNext48(b, next)
+	case Node256:
+		e.setNext256(b, next)
+	}
+}
+
+func (e *edges) next(b byte) *node {
+	switch e.ntype {
+	case Node4:
+		return e.next4(b)
+	case Node16:
+		return e.next16(b)
+	case Node48:
+		return e.next48(b)
+	}
+
+	return e.edges[b]
+}
+
+func (e *edges) next4(b byte) *node {
 	for i := 0; i < 4; i++ {
-		if n.keys[i] == b {
-			return n.edges[i]
+		if e.keys[i] == b {
+			return e.edges[i]
 		}
 	}
 
 	return nil
 }
 
-func (n *node) next16(b byte) *node {
-	i := sort.Search(int(n.children), func(i int) bool {
-		return n.keys[i] >= b
+func (e *edges) next16(b byte) *node {
+	i := sort.Search(int(e.children), func(i int) bool {
+		return e.keys[i] >= b
 	})
 
 	if i == 16 {
 		return nil
 	}
 
-	if n.keys[i] != b {
+	if e.keys[i] != b {
 		return nil
 	}
 
-	return n.edges[i]
+	return e.edges[i]
 }
 
-func (n *node) next48(b byte) *node {
-	i := uint8(n.keys[b])
+func (e *edges) next48(b byte) *node {
+	i := uint8(e.keys[b])
 
 	if i == 0 {
 		return nil
 	}
 
-	return n.edges[i-1]
+	return e.edges[i-1]
 }
 
-func (n *node) setNext(b byte, next *node) {
-	if n.full() && n.next(b) == nil {
-		n.upgrade()
-	}
-
-	switch n.ntype {
-	case Node4:
-		n.setNext4(b, next)
-	case Node16:
-		n.setNext16(b, next)
-	case Node48:
-		n.setNext48(b, next)
-	case Node256:
-		n.setNext256(b, next)
-	}
-}
-
-func (n *node) setNext4(b byte, next *node) {
+func (e *edges) setNext4(b byte, next *node) {
 	for i := 0; i < 4; i++ {
-		if n.keys[i] == b {
-			n.edges[i] = next
+		if e.keys[i] == b {
+			e.edges[i] = next
 			return
 		}
 	}
 
-	i := n.children
-	n.keys[i] = b
-	n.edges[i] = next
-	n.children++
+	i := e.children
+	e.keys[i] = b
+	e.edges[i] = next
+	e.children++
 }
 
-func (n *node) setNext16(b byte, next *node) {
-	p := n.search(b)
+func (e *edges) setNext16(b byte, next *node) {
+	p := e.search(b)
 
-	if n.keys[p] == b {
-		n.edges[p] = next
+	if e.keys[p] == b {
+		e.edges[p] = next
 		return
 	}
 
 	for i := uint8(15); i > p; i-- {
-		n.keys[i] = n.keys[i-1]
-		n.edges[i] = n.edges[i-1]
+		e.keys[i] = e.keys[i-1]
+		e.edges[i] = e.edges[i-1]
 	}
 
-	n.keys[p] = b
-	n.edges[p] = next
-	n.children++
+	e.keys[p] = b
+	e.edges[p] = next
+	e.children++
 }
 
-func (n *node) setNext48(b byte, next *node) {
-	if n.keys[b] != 0 {
-		n.edges[n.keys[b]-1] = next
+func (e *edges) setNext48(b byte, next *node) {
+	if e.keys[b] != 0 {
+		e.edges[e.keys[b]-1] = next
 		return
 	}
 
-	n.keys[b] = n.children + 1
-	n.edges[n.children] = next
-	n.children++
+	e.keys[b] = e.children + 1
+	e.edges[e.children] = next
+	e.children++
 }
 
-func (n *node) setNext256(b byte, next *node) {
-	if n.edges[b] == nil {
-		n.children++
+func (e *edges) setNext256(b byte, next *node) {
+	if e.edges[b] == nil {
+		e.children++
 	}
-	n.edges[b] = next
+	e.edges[b] = next
 }
 
-func (n *node) upgrade() {
-	var newNode *node
+func (e *edges) upgrade(copy bool) *edges {
+	var newEdges *edges
 
-	switch n.ntype {
+	switch e.ntype {
 	case Node4:
-		newNode = n.upgrade4()
+		newEdges = e.upgrade4()
 	case Node16:
-		newNode = n.upgrade16()
+		newEdges = e.upgrade16()
 	case Node48:
-		newNode = n.upgrade48()
+		newEdges = e.upgrade48()
 	}
 
-	newNode.prefix = n.prefix
-	newNode.children = n.children
-	newNode.value = n.value
+	newEdges.children = e.children
 
-	*n = *newNode
+	if !copy {
+		*e = *newEdges
+	}
+
+	return newEdges
 }
 
-func (n *node) upgrade4() *node {
-	newNode := newNode16()
+func (e *edges) upgrade4() *edges {
+	newEdges := newEdges16()
 
 	for i := 0; i < 4; i++ {
-		newNode.setNext(n.keys[i], n.edges[i])
+		newEdges.setNext16(e.keys[i], e.edges[i])
 	}
 
-	return newNode
+	return newEdges
 }
 
-func (n *node) upgrade16() *node {
-	newNode := newNode48()
+func (e *edges) upgrade16() *edges {
+	newEdges := newEdges48()
 
-	for i := uint8(0); i < n.children; i++ {
-		newNode.keys[n.keys[i]] = byte(i + 1)
-		newNode.edges[i] = n.edges[i]
+	for i := uint8(0); i < e.children; i++ {
+		newEdges.keys[e.keys[i]] = byte(i + 1)
+		newEdges.edges[i] = e.edges[i]
 	}
 
-	return newNode
+	return newEdges
 }
 
-func (n *node) upgrade48() *node {
-	newNode := newNode256()
+func (e *edges) upgrade48() *edges {
+	newEdges := newEdges256()
 
 	for i := 0; i < 256; i++ {
-		if n.keys[i] > 0 {
-			newNode.edges[i] = n.edges[n.keys[i]-1]
+		if e.keys[i] > 0 {
+			newEdges.edges[i] = e.edges[e.keys[i]-1]
 		}
 	}
 
-	return newNode
+	return newEdges
 }
 
-func (n *node) search(b byte) uint8 {
-	for i := uint8(0); i < uint8(len(n.keys)); i++ {
-		if n.keys[i] >= b {
+func (e *edges) search(b byte) uint8 {
+	for i := uint8(0); i < uint8(len(e.keys)); i++ {
+		if e.keys[i] >= b {
 			return i
 		}
 	}
-	return n.children
+	return e.children
 }
 
-func (n *node) full() bool {
-	switch n.ntype {
+func (e *edges) full() bool {
+	switch e.ntype {
 	case Node4:
-		return n.children == 4
+		return e.children == 4
 	case Node16:
-		return n.children == 16
+		return e.children == 16
 	case Node48:
-		return n.children == 48
+		return e.children == 48
 	}
 
 	return false
+}
+
+func (e *edges) copy() *edges {
+	ne := &edges{
+		ntype:    e.ntype,
+		keys:     make([]byte, len(e.keys)),
+		edges:    make([]*node, len(e.edges)),
+		children: e.children,
+	}
+
+	copy(ne.keys, e.keys)
+	copy(ne.edges, e.edges)
+
+	return ne
+}
+
+func (n *node) getEdges() *edges {
+	return (*edges)(atomic.LoadPointer(n.edges))
 }

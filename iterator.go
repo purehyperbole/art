@@ -19,15 +19,8 @@ func (t *ART) iterate(key []byte, current *node, fn func(key []byte, value inter
 	}
 
 	for i := 0; i < 256; i++ {
-		if current == t.root {
-			t.locks[i].RLock()
-		}
-
 		next := current.next(byte(i))
 		if next == nil {
-			if current == t.root {
-				t.locks[i].RUnlock()
-			}
 			continue
 		}
 
@@ -45,9 +38,5 @@ func (t *ART) iterate(key []byte, current *node, fn func(key []byte, value inter
 		}
 
 		t.iterate(ckey, next, fn)
-
-		if current == t.root {
-			t.locks[i].RUnlock()
-		}
 	}
 }
