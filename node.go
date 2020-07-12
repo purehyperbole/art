@@ -94,7 +94,7 @@ func (n *node) swapNext(b byte, existing, next *node) bool {
 	var ne *edges
 
 	if e.full() && e.next(b) == nil {
-		ne = e.upgrade(false)
+		ne = e.upgrade()
 	} else {
 		ne = e.copy()
 	}
@@ -116,20 +116,26 @@ func (n *node) swapNext(b byte, existing, next *node) bool {
 func (n *node) setNext(b byte, next *node) {
 	e := (*edges)(atomic.LoadPointer(n.edges))
 
+	var newEdges *edges
+
 	if e.full() && e.next(b) == nil {
-		e.upgrade(false)
+		newEdges = e.upgrade()
+	} else {
+		newEdges = e
 	}
 
-	switch e.ntype {
+	switch newEdges.ntype {
 	case Node4:
-		e.setNext4(b, next)
+		newEdges.setNext4(b, next)
 	case Node16:
-		e.setNext16(b, next)
+		newEdges.setNext16(b, next)
 	case Node48:
-		e.setNext48(b, next)
+		newEdges.setNext48(b, next)
 	case Node256:
-		e.setNext256(b, next)
+		newEdges.setNext256(b, next)
 	}
+
+	*e = *newEdges
 }
 
 func (e *edges) next(b byte) *node {
@@ -231,7 +237,7 @@ func (e *edges) setNext256(b byte, next *node) {
 	e.edges[b] = next
 }
 
-func (e *edges) upgrade(copy bool) *edges {
+func (e *edges) upgrade() *edges {
 	var newEdges *edges
 
 	switch e.ntype {
@@ -244,10 +250,6 @@ func (e *edges) upgrade(copy bool) *edges {
 	}
 
 	newEdges.children = e.children
-
-	if !copy {
-		*e = *newEdges
-	}
 
 	return newEdges
 }

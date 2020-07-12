@@ -108,9 +108,15 @@ func (t *ART) find(key []byte) (*node, *node, int, int) {
 
 	current = t.root
 
-	for current.next(key[pos]) != nil {
+	for {
 		parent = current
-		current = current.next(key[pos])
+
+		n := current.next(key[pos])
+		if n == nil {
+			break
+		}
+
+		current = n
 		pos++
 
 		if len(current.prefix) > 0 {
