@@ -18,6 +18,7 @@ type edges struct {
 	keys     []byte
 	edges    []*node
 	children uint8
+	deleted  bool
 }
 
 type node struct {
@@ -85,6 +86,10 @@ func newEdges256() *edges {
 func (n *node) swapNext(b byte, existing, next *node) bool {
 	e := (*edges)(atomic.LoadPointer(n.edges))
 
+	if e.deleted {
+		return false
+	}
+
 	cn := e.next(b)
 
 	if cn != existing {
@@ -136,6 +141,15 @@ func (n *node) setNext(b byte, next *node) {
 	}
 
 	*e = *newEdges
+}
+
+func (e *edges) mark() bool {
+	e := (*edges)(atomic.LoadPointer(n.edges))
+
+	ne := e.copy()
+	ne.deleted = true
+
+	return atomic.CompareAndSwapPointer(n.edges, unsafe.Pointer(e), unsafe.Pointer(ne))
 }
 
 func (e *edges) next(b byte) *node {

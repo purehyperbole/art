@@ -91,7 +91,7 @@ func (t *ART) Swap(key []byte, old, new interface{}) bool {
 	}
 }
 
-// Lookup a value from the tree
+// Lookup find a value from the tree
 func (t *ART) Lookup(key []byte) interface{} {
 	_, current, pos, _ := t.find(key)
 
@@ -100,6 +100,32 @@ func (t *ART) Lookup(key []byte) interface{} {
 	}
 
 	return current.value
+}
+
+// Delete deletes a key from the tree
+func (t *ART) Delete(key []byte) bool {
+	parent, current, pos, dv := t.find(key)
+
+	if current == nil || len(key) > pos {
+		return true
+	}
+
+	switch current.getEdges.children {
+	case 0:
+		// hard remove the node
+		success := current.mark()
+		if !success {
+			return false
+		}
+
+		edgePos := pos - (len(current.prefix) + 1)
+		return parent.swapNext(key[edgePos], current, nil)
+	case 1:
+		// compress the tree
+	default:
+		// we cant delete anything here
+		return true
+	}
 }
 
 func (t *ART) find(key []byte) (*node, *node, int, int) {
