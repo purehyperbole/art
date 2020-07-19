@@ -17,32 +17,37 @@ func New() *ART {
 }
 
 // Insert value into the tree
-func (t *ART) Insert(key []byte, value interface{}) bool {
+func (t *ART) Insert(key []byte, value interface{}) (string, bool) {
 	var success bool
+	var kind string
 
 	parent, current, pos, dv := t.find(key)
 
 	for {
 		switch {
 		case shouldInsert(key, current, parent, pos, dv):
+			kind = "insert"
 			success = t.insertNode(key, value, parent, current, pos, dv)
 		case shouldUpdate(key, current, parent, pos, dv):
+			kind = "update"
 			success = t.updateNode(key, value, parent, current, pos, dv)
 		case shouldSplitThreeWay(key, current, parent, pos, dv):
+			kind = "three way"
 			success = t.splitThreeWay(key, value, parent, current, pos, dv)
 		case shouldSplitTwoWay(key, current, parent, pos, dv):
+			kind = "two way"
 			success = t.splitTwoWay(key, value, parent, current, pos, dv)
 		}
 
 		if success {
-			return true
+			return kind, true
 		}
 
 		parent, current, pos, dv = t.find(key)
 
 		if shouldUpdate(key, current, parent, pos, dv) {
 			// someone else updated the same value we did
-			return false
+			return kind, false
 		}
 	}
 }

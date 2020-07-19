@@ -1,8 +1,10 @@
 package art
 
 import (
-	"sync/atomic"
+	"fmt"
 	"sort"
+	"strings"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -21,12 +23,12 @@ type edges struct {
 }
 
 type node struct {
-	prefix   []byte
+	prefix []byte
 	edges  *unsafe.Pointer
-	value    interface{}
+	value  interface{}
 }
 
-func newNode(size int, prefix []byte, value interface{}) *node{
+func newNode(size int, prefix []byte, value interface{}) *node {
 	var e unsafe.Pointer
 
 	switch size {
@@ -53,9 +55,9 @@ func (n *node) next(b byte) *node {
 
 func newEdges4() *edges {
 	return &edges{
-			ntype: Node4,
-			keys:  make([]byte, 4, 4),
-			edges: make([]*node, 4, 4),
+		ntype: Node4,
+		keys:  make([]byte, 4, 4),
+		edges: make([]*node, 4, 4),
 	}
 }
 
@@ -325,4 +327,32 @@ func (e *edges) copy() *edges {
 
 func (n *node) getEdges() *edges {
 	return (*edges)(atomic.LoadPointer(n.edges))
+}
+
+func (n *node) print() {
+	output := []string{"{"}
+
+	output = append(output, fmt.Sprintf("	Prefix Length: %d", len(n.prefix)))
+	output = append(output, fmt.Sprintf("	Prefix: %s", string(n.prefix)))
+	output = append(output, fmt.Sprintf("	Value: %d", n.value))
+
+	output = append(output, "	Edges: [")
+
+	edges := n.getEdges()
+
+	if edges != nil {
+		fmt.Println(edges.ntype, edges.children, len(edges.edges))
+
+		for i := 0; i < int(edges.children); i++ {
+			edge := n.next(byte(i))
+			if edge != nil {
+				output = append(output, fmt.Sprintf("		%s: %s", string(byte(i)), edge.prefix))
+			}
+		}
+	}
+
+	output = append(output, "	]")
+	output = append(output, "}")
+
+	fmt.Println(strings.Join(output, "\n"))
 }
