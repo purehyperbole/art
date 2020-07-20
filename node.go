@@ -101,7 +101,7 @@ func (n *node) swapNext(b byte, existing, next *node) bool {
 		ne = e.copy()
 	}
 
-	switch e.ntype {
+	switch ne.ntype {
 	case Node4:
 		ne.setNext4(b, next)
 	case Node16:
@@ -270,7 +270,7 @@ func (e *edges) upgrade16() *edges {
 	newEdges := newEdges48()
 
 	for i := uint8(0); i < e.children; i++ {
-		newEdges.keys[e.keys[i]] = byte(i + 1)
+		newEdges.keys[e.keys[i]] = i + 1
 		newEdges.edges[i] = e.edges[i]
 	}
 
@@ -341,10 +341,8 @@ func (n *node) print() {
 	edges := n.getEdges()
 
 	if edges != nil {
-		fmt.Println(edges.ntype, edges.children, len(edges.edges))
-
-		for i := 0; i < int(edges.children); i++ {
-			edge := n.next(byte(i))
+		for i := 0; i < 256; i++ {
+			edge := edges.next(byte(i))
 			if edge != nil {
 				output = append(output, fmt.Sprintf("		%s: %s", string(byte(i)), edge.prefix))
 			}

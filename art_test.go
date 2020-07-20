@@ -97,12 +97,8 @@ func TestARTInsert(t *testing.T) {
 		if len(w) < 1 {
 			continue
 		}
-		fmt.Println(string(w))
-		if string(w) == "AS" {
-			n := r.root.next([]byte("A")[0])
-			n.print()
-		}
-		r.Insert(w, w)
+		success := r.Insert(w, w)
+		assert.True(t, success)
 	}
 
 }
@@ -159,18 +155,12 @@ func TestARTIterate(t *testing.T) {
 	}
 }
 
-type insert struct {
-	k    []byte
-	kind string
-}
-
 func TestConcurrentInsert(t *testing.T) {
 	var wg sync.WaitGroup
 
 	r := New()
 
 	batch := make([][][]byte, 1)
-	results := make([][]insert, 1)
 
 	for i := 0; i < 1; i++ {
 		batch[i] = make([][]byte, 1000)
@@ -184,10 +174,11 @@ func TestConcurrentInsert(t *testing.T) {
 
 	for i := 0; i < 1; i++ {
 		go func(b int) {
-			results[b] = make([]insert, len(batch[b]))
 			for x := range batch[b] {
-				kind, _ := r.Insert(batch[b][x], batch[b][x])
-				results[b][x] = insert{kind: kind, k: batch[b][x]}
+				success := r.Insert(batch[b][x], batch[b][x])
+				if !success {
+					panic("failed to insert unique value")
+				}
 			}
 			wg.Done()
 		}(i)
@@ -198,11 +189,8 @@ func TestConcurrentInsert(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		for x := 0; x < 1000; x++ {
 			value := r.Lookup(batch[i][x])
-			if value == nil {
-				fmt.Println(string(batch[i][x]), string(results[i][x].k), results[i][x].kind)
-			}
-			//require.NotNil(t, value)
-			//assert.True(t, bytes.Equal(value.([]byte), batch[i][x]))
+			require.NotNil(t, value)
+			assert.True(t, bytes.Equal(value.([]byte), batch[i][x]))
 		}
 	}
 }

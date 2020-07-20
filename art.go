@@ -17,37 +17,32 @@ func New() *ART {
 }
 
 // Insert value into the tree
-func (t *ART) Insert(key []byte, value interface{}) (string, bool) {
+func (t *ART) Insert(key []byte, value interface{}) bool {
 	var success bool
-	var kind string
 
 	parent, current, pos, dv := t.find(key)
 
 	for {
 		switch {
 		case shouldInsert(key, current, parent, pos, dv):
-			kind = "insert"
 			success = t.insertNode(key, value, parent, current, pos, dv)
 		case shouldUpdate(key, current, parent, pos, dv):
-			kind = "update"
 			success = t.updateNode(key, value, parent, current, pos, dv)
 		case shouldSplitThreeWay(key, current, parent, pos, dv):
-			kind = "three way"
 			success = t.splitThreeWay(key, value, parent, current, pos, dv)
 		case shouldSplitTwoWay(key, current, parent, pos, dv):
-			kind = "two way"
 			success = t.splitTwoWay(key, value, parent, current, pos, dv)
 		}
 
 		if success {
-			return kind, true
+			return true
 		}
 
 		parent, current, pos, dv = t.find(key)
 
 		if shouldUpdate(key, current, parent, pos, dv) {
 			// someone else updated the same value we did
-			return kind, false
+			return false
 		}
 	}
 }
@@ -151,7 +146,7 @@ func (t *ART) insertNode(key []byte, value interface{}, parent, current *node, p
 func (t *ART) updateNode(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
 	edgePos := pos - (len(current.prefix) + 1)
 
-	n := newNode(Node4, current.prefix, value)
+	n := newNode(-1, current.prefix, value)
 	n.edges = current.edges
 
 	return parent.swapNext(key[edgePos], current, n)
@@ -166,7 +161,7 @@ func (t *ART) splitTwoWay(key []byte, value interface{}, parent, current *node, 
 	}
 
 	n1 := newNode(Node4, pfx, value)
-	n2 := newNode(Node4, current.prefix[dv+1:], current.value)
+	n2 := newNode(-1, current.prefix[dv+1:], current.value)
 	n2.edges = current.edges
 
 	n1.setNext(current.prefix[dv], n2)
@@ -176,7 +171,7 @@ func (t *ART) splitTwoWay(key []byte, value interface{}, parent, current *node, 
 
 func (t *ART) splitThreeWay(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
 	n1 := newNode(Node4, current.prefix[:dv], nil)
-	n2 := newNode(Node4, current.prefix[dv+1:], current.value)
+	n2 := newNode(-1, current.prefix[dv+1:], current.value)
 	n3 := newNode(Node4, key[pos+dv+1:], value)
 
 	n2.edges = current.edges
