@@ -1,7 +1,7 @@
 package art
 
 // Iterate over every key from a given point
-func (t *ART) Iterate(from []byte, fn func(key []byte, value interface{})) {
+func (t *ART) Iterate(from []byte, fn func(key []byte, value Comparable)) {
 	var current *node
 
 	if len(from) > 0 {
@@ -13,7 +13,7 @@ func (t *ART) Iterate(from []byte, fn func(key []byte, value interface{})) {
 	t.iterate(from, current, fn)
 }
 
-func (t *ART) iterate(key []byte, current *node, fn func(key []byte, value interface{})) {
+func (t *ART) iterate(key []byte, current *node, fn func(key []byte, value Comparable)) {
 	if current.edges == nil {
 		return
 	}

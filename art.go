@@ -1,9 +1,5 @@
 package art
 
-import (
-	"reflect"
-)
-
 // ART an adaptive radix tree implementation
 type ART struct {
 	root *node
@@ -17,7 +13,7 @@ func New() *ART {
 }
 
 // Insert value into the tree
-func (t *ART) Insert(key []byte, value interface{}) bool {
+func (t *ART) Insert(key []byte, value Comparable) bool {
 	var success bool
 
 	parent, current, pos, dv := t.find(key)
@@ -48,7 +44,7 @@ func (t *ART) Insert(key []byte, value interface{}) bool {
 }
 
 // Swap atomically swaps a value
-func (t *ART) Swap(key []byte, old, new interface{}) bool {
+func (t *ART) Swap(key []byte, old, new Comparable) bool {
 	var success bool
 
 	parent, current, pos, dv := t.find(key)
@@ -60,8 +56,7 @@ func (t *ART) Swap(key []byte, old, new interface{}) bool {
 
 	// if we did find a node, check that the value we have matches or fail
 	if current != nil && old != nil {
-		// this is probably going to be slow :/
-		if !reflect.DeepEqual(current.value, old) {
+		if !old.EqualTo(current.value) {
 			return false
 		}
 	}
@@ -138,12 +133,12 @@ func (t *ART) find(key []byte) (*node, *node, int, int) {
 	return current, nil, pos, dv
 }
 
-func (t *ART) insertNode(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
+func (t *ART) insertNode(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	n := newNode(Node4, key[pos+1:], value)
 	return parent.swapNext(key[pos], nil, n)
 }
 
-func (t *ART) updateNode(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
+func (t *ART) updateNode(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	edgePos := pos - (len(current.prefix) + 1)
 
 	n := newNode(-1, current.prefix, value)
@@ -152,7 +147,7 @@ func (t *ART) updateNode(key []byte, value interface{}, parent, current *node, p
 	return parent.swapNext(key[edgePos], current, n)
 }
 
-func (t *ART) splitTwoWay(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
+func (t *ART) splitTwoWay(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	var pfx []byte
 
 	// fix issue where key is found, but is occupied by another current with prefix
@@ -169,7 +164,7 @@ func (t *ART) splitTwoWay(key []byte, value interface{}, parent, current *node, 
 	return parent.swapNext(key[pos-1], current, n1)
 }
 
-func (t *ART) splitThreeWay(key []byte, value interface{}, parent, current *node, pos, dv int) bool {
+func (t *ART) splitThreeWay(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	n1 := newNode(Node4, current.prefix[:dv], nil)
 	n2 := newNode(-1, current.prefix[dv+1:], current.value)
 	n3 := newNode(Node4, key[pos+dv+1:], value)

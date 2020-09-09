@@ -25,10 +25,10 @@ type edges struct {
 type node struct {
 	prefix []byte
 	edges  *unsafe.Pointer
-	value  interface{}
+	value  Comparable
 }
 
-func newNode(size int, prefix []byte, value interface{}) *node {
+func newNode(size int, prefix []byte, value Comparable) *node {
 	var e unsafe.Pointer
 
 	switch size {

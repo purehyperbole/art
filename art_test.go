@@ -73,13 +73,13 @@ func TestARTInsertLookup(t *testing.T) {
 			r := New()
 
 			for _, kv := range tc.Existing {
-				r.Insert([]byte(kv.Key), kv.Value)
+				r.Insert([]byte(kv.Key), String(kv.Value))
 			}
 
 			for _, kv := range tc.Lookups {
 				value := r.Lookup([]byte(kv.Key))
 				require.NotNil(t, value)
-				assert.Equal(t, kv.Value, value)
+				assert.Equal(t, String(kv.Value), value)
 			}
 		})
 	}
@@ -97,7 +97,7 @@ func TestARTInsert(t *testing.T) {
 		if len(w) < 1 {
 			continue
 		}
-		success := r.Insert(w, w)
+		success := r.Insert(w, Bytes(w))
 		assert.True(t, success)
 	}
 
@@ -141,10 +141,10 @@ func TestARTIterate(t *testing.T) {
 	var results [][]byte
 
 	for _, k := range keys {
-		r.Insert([]byte(k), []byte(k))
+		r.Insert([]byte(k), Bytes(k))
 	}
 
-	r.Iterate([]byte("hypot"), func(key []byte, value interface{}) {
+	r.Iterate([]byte("hypot"), func(key []byte, value Comparable) {
 		results = append(results, key)
 	})
 
@@ -175,7 +175,7 @@ func TestConcurrentInsert(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		go func(b int) {
 			for x := range batch[b] {
-				success := r.Insert(batch[b][x], batch[b][x])
+				success := r.Insert(batch[b][x], Bytes(batch[b][x]))
 				if !success {
 					panic("failed to insert unique value")
 				}
@@ -190,7 +190,7 @@ func TestConcurrentInsert(t *testing.T) {
 		for x := 0; x < 1000; x++ {
 			value := r.Lookup(batch[i][x])
 			require.NotNil(t, value)
-			assert.True(t, bytes.Equal(value.([]byte), batch[i][x]))
+			assert.True(t, bytes.Equal(value.(Bytes), batch[i][x]))
 		}
 	}
 }
@@ -217,7 +217,7 @@ func TestConcurrentInsertInt(t *testing.T) {
 	for i := 0; i < w; i++ {
 		go func(b int) {
 			for x := range batch[b] {
-				r.Insert(batch[b][x], batch[b][x])
+				r.Insert(batch[b][x], Bytes(batch[b][x]))
 			}
 			wg.Done()
 		}(i)
@@ -228,7 +228,7 @@ func TestConcurrentInsertInt(t *testing.T) {
 	for x := 0; x < 1000; x++ {
 		value := r.Lookup(batch[0][x])
 		require.NotNil(t, value)
-		assert.True(t, bytes.Equal(value.([]byte), batch[0][x]))
+		assert.True(t, bytes.Equal(value.(Bytes), batch[0][x]))
 	}
 }
 
@@ -243,7 +243,7 @@ func TestSwap(t *testing.T) {
 
 	// swap empty
 	for x := 0; x < 10000; x++ {
-		success := r.Swap(uuids[x], nil, uuids[x])
+		success := r.Swap(uuids[x], nil, Bytes(uuids[x]))
 		require.True(t, success)
 	}
 
@@ -251,7 +251,7 @@ func TestSwap(t *testing.T) {
 
 	// swap existing
 	for x := 0; x < 10000; x++ {
-		success := r.Swap(uuids[x], uuids[x], v)
+		success := r.Swap(uuids[x], Bytes(uuids[x]), Bytes(v))
 		require.True(t, success)
 	}
 }
@@ -271,7 +271,7 @@ func TestConcurrentSwap(t *testing.T) {
 			go func(b int) {
 				val := fmt.Sprintf("test-value-%d", b)
 
-				if !r.Swap([]byte("test-key"), nil, []byte(val)) {
+				if !r.Swap([]byte("test-key"), nil, Bytes(val)) {
 					atomic.AddInt64(&failures, 1)
 				}
 
@@ -294,13 +294,13 @@ func TestConcurrentSwap(t *testing.T) {
 
 		wg.Add(w)
 
-		r.Insert([]byte("test-key"), []byte("test-value"))
+		r.Insert([]byte("test-key"), Bytes("test-value"))
 
 		for i := 0; i < w; i++ {
 			go func(b int) {
 				val := fmt.Sprintf("test-value-%d", b)
 
-				if !r.Swap([]byte("test-key"), []byte("test-value"), []byte(val)) {
+				if !r.Swap([]byte("test-key"), Bytes("test-value"), Bytes(val)) {
 					atomic.AddInt64(&failures, 1)
 				}
 
