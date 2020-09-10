@@ -2,9 +2,14 @@ package art
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
+	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,13 +73,13 @@ func TestARTInsertLookup(t *testing.T) {
 			r := New()
 
 			for _, kv := range tc.Existing {
-				r.Insert([]byte(kv.Key), kv.Value)
+				r.Insert([]byte(kv.Key), String(kv.Value))
 			}
 
 			for _, kv := range tc.Lookups {
 				value := r.Lookup([]byte(kv.Key))
 				require.NotNil(t, value)
-				assert.Equal(t, kv.Value, value)
+				assert.Equal(t, String(kv.Value), value)
 			}
 		})
 	}
@@ -92,7 +97,8 @@ func TestARTInsert(t *testing.T) {
 		if len(w) < 1 {
 			continue
 		}
-		r.Insert(w, w)
+		success := r.Insert(w, Bytes(w))
+		assert.True(t, success)
 	}
 
 }
@@ -135,10 +141,10 @@ func TestARTIterate(t *testing.T) {
 	var results [][]byte
 
 	for _, k := range keys {
-		r.Insert([]byte(k), []byte(k))
+		r.Insert([]byte(k), Bytes(k))
 	}
 
-	r.Iterate([]byte("hypot"), func(key []byte, value interface{}) {
+	r.Iterate([]byte("hypot"), func(key []byte, value Comparable) {
 		results = append(results, key)
 	})
 
@@ -146,5 +152,164 @@ func TestARTIterate(t *testing.T) {
 
 	for i := range results {
 		assert.True(t, bytes.HasPrefix(results[i], []byte("hypot")))
+	}
+}
+
+func TestConcurrentInsert(t *testing.T) {
+	var wg sync.WaitGroup
+
+	r := New()
+
+	batch := make([][][]byte, 1)
+
+	for i := 0; i < 1; i++ {
+		batch[i] = make([][]byte, 1000)
+
+		for x := 0; x < 1000; x++ {
+			batch[i][x] = []byte(uuid.New().String())
+		}
+	}
+
+	wg.Add(1)
+
+	for i := 0; i < 1; i++ {
+		go func(b int) {
+			for x := range batch[b] {
+				success := r.Insert(batch[b][x], Bytes(batch[b][x]))
+				if !success {
+					panic("failed to insert unique value")
+				}
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	for i := 0; i < 1; i++ {
+		for x := 0; x < 1000; x++ {
+			value := r.Lookup(batch[i][x])
+			require.NotNil(t, value)
+			assert.True(t, bytes.Equal(value.(Bytes), batch[i][x]))
+		}
+	}
+}
+
+func TestConcurrentInsertInt(t *testing.T) {
+	var wg sync.WaitGroup
+
+	w := 32
+
+	r := New()
+
+	batch := make([][][]byte, w)
+
+	for i := 0; i < w; i++ {
+		batch[i] = make([][]byte, 10000)
+
+		for x := 0; x < 10000; x++ {
+			batch[i][x] = []byte(strconv.Itoa(x))
+		}
+	}
+
+	wg.Add(w)
+
+	for i := 0; i < w; i++ {
+		go func(b int) {
+			for x := range batch[b] {
+				r.Insert(batch[b][x], Bytes(batch[b][x]))
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	for x := 0; x < 1000; x++ {
+		value := r.Lookup(batch[0][x])
+		require.NotNil(t, value)
+		assert.True(t, bytes.Equal(value.(Bytes), batch[0][x]))
+	}
+}
+
+func TestSwap(t *testing.T) {
+	uuids := make([][]byte, 10000)
+
+	for i := 0; i < 10000; i++ {
+		uuids[i] = []byte(uuid.New().String())
+	}
+
+	r := New()
+
+	// swap empty
+	for x := 0; x < 10000; x++ {
+		success := r.Swap(uuids[x], nil, Bytes(uuids[x]))
+		require.True(t, success)
+	}
+
+	v := []byte("new-value")
+
+	// swap existing
+	for x := 0; x < 10000; x++ {
+		success := r.Swap(uuids[x], Bytes(uuids[x]), Bytes(v))
+		require.True(t, success)
+	}
+}
+
+func TestConcurrentSwap(t *testing.T) {
+	for x := 0; x < 100; x++ {
+		var wg sync.WaitGroup
+		var failures int64
+
+		w := 32
+
+		r := New()
+
+		wg.Add(w)
+
+		for i := 0; i < w; i++ {
+			go func(b int) {
+				val := fmt.Sprintf("test-value-%d", b)
+
+				if !r.Swap([]byte("test-key"), nil, Bytes(val)) {
+					atomic.AddInt64(&failures, 1)
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+
+		assert.Equal(t, int64(w-1), failures)
+	}
+
+	for x := 0; x < 100; x++ {
+		var wg sync.WaitGroup
+		var failures int64
+
+		w := 32
+
+		r := New()
+
+		wg.Add(w)
+
+		r.Insert([]byte("test-key"), Bytes("test-value"))
+
+		for i := 0; i < w; i++ {
+			go func(b int) {
+				val := fmt.Sprintf("test-value-%d", b)
+
+				if !r.Swap([]byte("test-key"), Bytes("test-value"), Bytes(val)) {
+					atomic.AddInt64(&failures, 1)
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+
+		assert.Equal(t, int64(w-1), failures)
 	}
 }
