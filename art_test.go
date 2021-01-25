@@ -318,3 +318,46 @@ func TestConcurrentSwap(t *testing.T) {
 		assert.Equal(t, int64(w-1), failures)
 	}
 }
+
+func BenchmarkConcurrentInsert(b *testing.B) {
+	ids := make([][]byte, 100000)
+
+	for i := 0; i < 100000; i++ {
+		ids[i] = []byte(uuid.New().String())
+	}
+
+	r := New()
+
+	b.ResetTimer()
+
+	var counter int64
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := atomic.AddInt64(&counter, 1) - 1
+			r.Insert(ids[i], Bytes{})
+		}
+	})
+}
+
+func BenchmarkConcurrentLookup(b *testing.B) {
+	ids := make([][]byte, 100000)
+
+	r := New()
+
+	for i := 0; i < 100000; i++ {
+		ids[i] = []byte(uuid.New().String())
+		r.Insert(ids[i], Bytes{})
+	}
+
+	b.ResetTimer()
+
+	var counter int64
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i := atomic.AddInt64(&counter, 1) - 1
+			r.Lookup(ids[i])
+		}
+	})
+}
