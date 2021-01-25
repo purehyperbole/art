@@ -1,8 +1,8 @@
 package art
 
 import (
+	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -164,15 +164,8 @@ func (e *edges) next4(b byte) *node {
 }
 
 func (e *edges) next16(b byte) *node {
-	i := sort.Search(int(e.children), func(i int) bool {
-		return e.keys[i] >= b
-	})
-
-	if i == 16 {
-		return nil
-	}
-
-	if e.keys[i] != b {
+	i := bytes.IndexByte(e.keys[:], b)
+	if i < 0 {
 		return nil
 	}
 
