@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -354,8 +353,6 @@ func BenchmarkConcurrentLookup(b *testing.B) {
 	b.ResetTimer()
 
 	var counter int64
-
-	defer profile.Start().Stop()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
