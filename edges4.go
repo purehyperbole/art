@@ -12,6 +12,12 @@ func newEdges4() *edges4 {
 	return &edges4{}
 }
 
+func newEdges4p() *edges {
+	var e edges
+	e = &edges4{}
+	return &e
+}
+
 func (e *edges4) ntype() uint8 {
 	return Node4
 }
