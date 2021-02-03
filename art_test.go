@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -320,9 +321,9 @@ func TestConcurrentSwap(t *testing.T) {
 }
 
 func BenchmarkConcurrentInsert(b *testing.B) {
-	ids := make([][]byte, 100000)
+	ids := make([][]byte, 1000000)
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 1000000; i++ {
 		ids[i] = []byte(uuid.New().String())
 	}
 
@@ -341,11 +342,11 @@ func BenchmarkConcurrentInsert(b *testing.B) {
 }
 
 func BenchmarkConcurrentLookup(b *testing.B) {
-	ids := make([][]byte, 100000)
+	ids := make([][]byte, 1000000)
 
 	r := New()
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 1000000; i++ {
 		ids[i] = []byte(uuid.New().String())
 		r.Insert(ids[i], Bytes{})
 	}
@@ -353,6 +354,8 @@ func BenchmarkConcurrentLookup(b *testing.B) {
 	b.ResetTimer()
 
 	var counter int64
+
+	defer profile.Start().Stop()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

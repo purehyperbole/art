@@ -1,5 +1,7 @@
 package art
 
+import "unsafe"
+
 // ART an adaptive radix tree implementation
 type ART struct {
 	root *node
@@ -136,15 +138,25 @@ func (t *ART) find(key []byte) (*node, *node, int, int) {
 }
 
 func (t *ART) insertNode(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
-	n := newNode(Node4, key[pos+1:], value)
+	e := unsafe.Pointer(newEdges4p())
+
+	n := &node{
+		prefix: key[pos+1:],
+		value:  value,
+		edges:  &e,
+	}
+
 	return parent.swapNext(key[pos], nil, n)
 }
 
 func (t *ART) updateNode(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	edgePos := pos - (len(current.prefix) + 1)
 
-	n := newNode(-1, current.prefix, value)
-	n.edges = current.edges
+	n := &node{
+		prefix: current.prefix,
+		value:  value,
+		edges:  current.edges,
+	}
 
 	return parent.swapNext(key[edgePos], current, n)
 }
@@ -157,9 +169,19 @@ func (t *ART) splitTwoWay(key []byte, value Comparable, parent, current *node, p
 		pfx = key[pos : pos+dv]
 	}
 
-	n1 := newNode(Node4, pfx, value)
-	n2 := newNode(-1, current.prefix[dv+1:], current.value)
-	n2.edges = current.edges
+	e1 := unsafe.Pointer(newEdges4p())
+
+	n1 := &node{
+		prefix: pfx,
+		value:  value,
+		edges:  &e1,
+	}
+
+	n2 := &node{
+		prefix: current.prefix[dv+1:],
+		value:  current.value,
+		edges:  current.edges,
+	}
 
 	n1.setNext(current.prefix[dv], n2)
 
@@ -167,11 +189,25 @@ func (t *ART) splitTwoWay(key []byte, value Comparable, parent, current *node, p
 }
 
 func (t *ART) splitThreeWay(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
-	n1 := newNode(Node4, current.prefix[:dv], nil)
-	n2 := newNode(-1, current.prefix[dv+1:], current.value)
-	n3 := newNode(Node4, key[pos+dv+1:], value)
+	e1 := unsafe.Pointer(newEdges4p())
+	e3 := unsafe.Pointer(newEdges4p())
 
-	n2.edges = current.edges
+	n1 := &node{
+		prefix: current.prefix[:dv],
+		edges:  &e1,
+	}
+
+	n2 := &node{
+		prefix: current.prefix[dv+1:],
+		value:  current.value,
+		edges:  current.edges,
+	}
+
+	n3 := &node{
+		prefix: key[pos+dv+1:],
+		value:  value,
+		edges:  &e3,
+	}
 
 	n1.setNext(current.prefix[dv], n2)
 	n1.setNext(key[pos+dv], n3)
@@ -207,5 +243,4 @@ func divergence(prefix, key []byte) int {
 	}
 
 	return i
-
 }
