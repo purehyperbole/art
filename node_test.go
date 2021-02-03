@@ -1,6 +1,7 @@
 package art
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,11 +26,11 @@ func TestNode4Next(t *testing.T) {
 	assert.Nil(t, e)
 
 	n = newNode(Node4, nil, nil)
-	n.getEdges().keys[0] = b("a")
-	n.getEdges().keys[1] = b("c")
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = 2
+	n.getEdges().(*edges4).keys[0] = b("a")
+	n.getEdges().(*edges4).keys[1] = b("c")
+	n.getEdges().(*edges4).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges4).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges4).children = 2
 
 	e = n.next(b("a"))
 	assert.NotNil(t, e)
@@ -43,24 +44,26 @@ func TestNode4Next(t *testing.T) {
 
 func TestNode4SetNext(t *testing.T) {
 	n := newNode(Node4, nil, nil)
-	n.getEdges().keys[0] = b("a")
-	n.getEdges().keys[1] = b("c")
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = uint8(2)
+	n.getEdges().(*edges4).keys[0] = b("a")
+	n.getEdges().(*edges4).keys[1] = b("c")
+	n.getEdges().(*edges4).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges4).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges4).children = uint8(2)
 
 	n.setNext(b("b"), newNode(Node4, nil, nil))
 
-	assert.Equal(t, b("a"), n.getEdges().keys[0])
-	assert.Equal(t, b("c"), n.getEdges().keys[1])
-	assert.Equal(t, b("b"), n.getEdges().keys[2])
+	fmt.Println(string(n.getEdges().(*edges4).keys[:]))
 
-	assert.NotNil(t, n.getEdges().edges[0])
-	assert.NotNil(t, n.getEdges().edges[1])
-	assert.NotNil(t, n.getEdges().edges[2])
-	assert.Nil(t, n.getEdges().edges[3])
+	assert.Equal(t, b("a"), n.getEdges().(*edges4).keys[0])
+	assert.Equal(t, b("b"), n.getEdges().(*edges4).keys[1])
+	assert.Equal(t, b("c"), n.getEdges().(*edges4).keys[2])
 
-	assert.Equal(t, uint8(3), n.getEdges().children)
+	assert.NotNil(t, n.getEdges().(*edges4).edges[0])
+	assert.NotNil(t, n.getEdges().(*edges4).edges[1])
+	assert.NotNil(t, n.getEdges().(*edges4).edges[2])
+	assert.Nil(t, n.getEdges().(*edges4).edges[3])
+
+	assert.Equal(t, uint8(3), n.getEdges().(*edges4).children)
 }
 
 func TestNode16Next(t *testing.T) {
@@ -71,11 +74,11 @@ func TestNode16Next(t *testing.T) {
 
 	n = newNode(Node16, nil, nil)
 
-	n.getEdges().keys[0] = b("a")
-	n.getEdges().keys[1] = b("c")
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = uint8(2)
+	n.getEdges().(*edges16).keys[0] = b("a")
+	n.getEdges().(*edges16).keys[1] = b("c")
+	n.getEdges().(*edges16).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges16).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges16).children = uint8(2)
 
 	e = n.next(b("a"))
 	assert.NotNil(t, e)
@@ -90,24 +93,24 @@ func TestNode16Next(t *testing.T) {
 func TestNode16SetNext(t *testing.T) {
 	n := newNode(Node16, nil, nil)
 
-	n.getEdges().keys[0] = b("a")
-	n.getEdges().keys[1] = b("c")
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = uint8(2)
+	n.getEdges().(*edges16).keys[0] = b("a")
+	n.getEdges().(*edges16).keys[1] = b("c")
+	n.getEdges().(*edges16).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges16).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges16).children = uint8(2)
 
 	n.setNext(b("b"), newNode(Node4, nil, nil))
 
-	assert.Equal(t, b("a"), n.getEdges().keys[0])
-	assert.Equal(t, b("b"), n.getEdges().keys[1])
-	assert.Equal(t, b("c"), n.getEdges().keys[2])
+	assert.Equal(t, b("a"), n.getEdges().(*edges16).keys[0])
+	assert.Equal(t, b("b"), n.getEdges().(*edges16).keys[1])
+	assert.Equal(t, b("c"), n.getEdges().(*edges16).keys[2])
 
-	assert.NotNil(t, n.getEdges().edges[0])
-	assert.NotNil(t, n.getEdges().edges[1])
-	assert.NotNil(t, n.getEdges().edges[2])
-	assert.Nil(t, n.getEdges().edges[3])
+	assert.NotNil(t, n.getEdges().(*edges16).edges[0])
+	assert.NotNil(t, n.getEdges().(*edges16).edges[1])
+	assert.NotNil(t, n.getEdges().(*edges16).edges[2])
+	assert.Nil(t, n.getEdges().(*edges16).edges[3])
 
-	assert.Equal(t, uint8(3), n.getEdges().children)
+	assert.Equal(t, uint8(3), n.getEdges().(*edges16).children)
 
 	n = newNode(Node4, nil, nil)
 
@@ -117,7 +120,7 @@ func TestNode16SetNext(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, uint8(16), n.getEdges().children)
+	assert.Equal(t, uint8(16), n.getEdges().(*edges16).children)
 }
 
 func TestNode48Next(t *testing.T) {
@@ -127,12 +130,12 @@ func TestNode48Next(t *testing.T) {
 	assert.Nil(t, e)
 
 	n = newNode(Node48, nil, nil)
-	n.getEdges().keys[0] = 1
-	n.getEdges().keys[1] = 0
-	n.getEdges().keys[2] = 2
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = 2
+	n.getEdges().(*edges48).keys[0] = 1
+	n.getEdges().(*edges48).keys[1] = 0
+	n.getEdges().(*edges48).keys[2] = 2
+	n.getEdges().(*edges48).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges48).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges48).children = 2
 
 	e = n.next(byte(0))
 	assert.NotNil(t, e)
@@ -146,24 +149,24 @@ func TestNode48Next(t *testing.T) {
 
 func TestNode48SetNext(t *testing.T) {
 	n := newNode(Node48, nil, nil)
-	n.getEdges().keys[97] = 1
-	n.getEdges().keys[99] = 2
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[1] = newNode(Node4, nil, nil)
-	n.getEdges().children = 2
+	n.getEdges().(*edges48).keys[97] = 1
+	n.getEdges().(*edges48).keys[99] = 2
+	n.getEdges().(*edges48).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges48).edges[1] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges48).children = 2
 
 	n.setNext(b("b"), newNode(Node4, nil, nil))
 
-	assert.Equal(t, uint8(1), n.getEdges().keys[97])
-	assert.Equal(t, uint8(3), n.getEdges().keys[98])
-	assert.Equal(t, uint8(2), n.getEdges().keys[99])
+	assert.Equal(t, uint8(1), n.getEdges().(*edges48).keys[97])
+	assert.Equal(t, uint8(3), n.getEdges().(*edges48).keys[98])
+	assert.Equal(t, uint8(2), n.getEdges().(*edges48).keys[99])
 
-	assert.NotNil(t, n.getEdges().edges[0])
-	assert.NotNil(t, n.getEdges().edges[1])
-	assert.NotNil(t, n.getEdges().edges[2])
-	assert.Nil(t, n.getEdges().edges[3])
+	assert.NotNil(t, n.getEdges().(*edges48).edges[0])
+	assert.NotNil(t, n.getEdges().(*edges48).edges[1])
+	assert.NotNil(t, n.getEdges().(*edges48).edges[2])
+	assert.Nil(t, n.getEdges().(*edges48).edges[3])
 
-	assert.Equal(t, uint8(3), n.getEdges().children)
+	assert.Equal(t, uint8(3), n.getEdges().(*edges48).children)
 }
 
 func TestNode256Next(t *testing.T) {
@@ -173,8 +176,8 @@ func TestNode256Next(t *testing.T) {
 	assert.Nil(t, e)
 
 	n = newNode(Node256, nil, nil)
-	n.getEdges().edges[0] = newNode(Node4, nil, nil)
-	n.getEdges().edges[2] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges256).edges[0] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges256).edges[2] = newNode(Node4, nil, nil)
 
 	e = n.next(byte(0))
 	assert.NotNil(t, e)
@@ -188,18 +191,18 @@ func TestNode256Next(t *testing.T) {
 
 func TestNode256SetNext(t *testing.T) {
 	n := newNode(Node256, nil, nil)
-	n.getEdges().edges[97] = newNode(Node4, nil, nil)
-	n.getEdges().edges[99] = newNode(Node4, nil, nil)
-	n.getEdges().children = 2
+	n.getEdges().(*edges256).edges[97] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges256).edges[99] = newNode(Node4, nil, nil)
+	n.getEdges().(*edges256).children = 2
 
 	n.setNext(b("b"), newNode(Node4, nil, nil))
 
-	assert.NotNil(t, n.getEdges().edges[97])
-	assert.NotNil(t, n.getEdges().edges[98])
-	assert.NotNil(t, n.getEdges().edges[99])
-	assert.Nil(t, n.getEdges().edges[3])
+	assert.NotNil(t, n.getEdges().(*edges256).edges[97])
+	assert.NotNil(t, n.getEdges().(*edges256).edges[98])
+	assert.NotNil(t, n.getEdges().(*edges256).edges[99])
+	assert.Nil(t, n.getEdges().(*edges256).edges[3])
 
-	assert.Equal(t, uint8(3), n.getEdges().children)
+	assert.Equal(t, uint8(3), n.getEdges().(*edges256).children)
 }
 
 func b(s string) byte {
