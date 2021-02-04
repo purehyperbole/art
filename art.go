@@ -1,6 +1,8 @@
 package art
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 // ART an adaptive radix tree implementation
 type ART struct {
@@ -138,7 +140,7 @@ func (t *ART) find(key []byte) (*node, *node, int, int) {
 }
 
 func (t *ART) insertNode(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
-	e := unsafe.Pointer(newEdges4p())
+	e := unsafe.Pointer(&leaf)
 
 	n := &node{
 		prefix: key[pos+1:],
@@ -190,7 +192,7 @@ func (t *ART) splitTwoWay(key []byte, value Comparable, parent, current *node, p
 
 func (t *ART) splitThreeWay(key []byte, value Comparable, parent, current *node, pos, dv int) bool {
 	e1 := unsafe.Pointer(newEdges4p())
-	e3 := unsafe.Pointer(newEdges4p())
+	e3 := unsafe.Pointer(&leaf)
 
 	n1 := &node{
 		prefix: current.prefix[:dv],

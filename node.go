@@ -8,20 +8,12 @@ import (
 )
 
 const (
-	Node4 = iota
+	NodeLeaf = iota
+	Node4
 	Node16
 	Node48
 	Node256
 )
-
-type edges interface {
-	ntype() uint8
-	next(b byte) *node
-	setNext(b byte, next *node)
-	copy() edges
-	upgrade() edges
-	full() bool
-}
 
 type node struct {
 	prefix []byte
@@ -59,6 +51,19 @@ func (n *node) next(b byte) *node {
 
 func (n *node) swapNext(b byte, existing, next *node) bool {
 	e := (*edges)(atomic.LoadPointer(n.edges))
+
+	/*
+		if (*e).ntype() == NodeLeaf {
+			ne := newEdges4()
+			ne.setNext(b, next)
+
+			if atomic.CompareAndSwapPointer(n.edges, unsafe.Pointer(&leaf), unsafe.Pointer(ne)) {
+				return true
+			}
+
+			e = (*edges)(atomic.LoadPointer(n.edges))
+		}
+	*/
 
 	cn := (*e).next(b)
 
