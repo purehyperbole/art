@@ -1,8 +1,8 @@
 package art
 
 type edges48 struct {
-	keys     [256]byte
 	edges    [48]*node
+	keys     [256]byte
 	children uint8
 }
 

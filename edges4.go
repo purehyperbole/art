@@ -3,8 +3,8 @@ package art
 import "bytes"
 
 type edges4 struct {
-	keys     [4]byte
 	edges    [4]*node
+	keys     [4]byte
 	children uint8
 }
 

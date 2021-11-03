@@ -1,6 +1,7 @@
 package art
 
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -44,6 +45,8 @@ func (t *ART) Insert(key []byte, value Comparable) bool {
 			// someone else updated the same value we did
 			return false
 		}
+
+		runtime.Gosched()
 	}
 }
 

@@ -17,8 +17,8 @@ const (
 
 type node struct {
 	prefix []byte
-	edges  *unsafe.Pointer
 	value  Comparable
+	edges  *unsafe.Pointer
 }
 
 func newNode(size int, prefix []byte, value Comparable) *node {

@@ -1,7 +1,6 @@
 package art
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,8 +50,6 @@ func TestNode4SetNext(t *testing.T) {
 	n.getEdges().(*edges4).children = uint8(2)
 
 	n.setNext(b("b"), newNode(Node4, nil, nil))
-
-	fmt.Println(string(n.getEdges().(*edges4).keys[:]))
 
 	assert.Equal(t, b("a"), n.getEdges().(*edges4).keys[0])
 	assert.Equal(t, b("b"), n.getEdges().(*edges4).keys[1])

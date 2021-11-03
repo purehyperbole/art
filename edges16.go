@@ -5,8 +5,8 @@ import (
 )
 
 type edges16 struct {
-	keys     [16]byte
 	edges    [16]*node
+	keys     [16]byte
 	children uint8
 }
 
